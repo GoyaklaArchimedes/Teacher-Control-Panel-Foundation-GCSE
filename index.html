@@ -5287,6 +5287,177 @@ function makeFunctionMachineFoundation(){
   }
 }
 
+function makeLawsOfIndices(){
+  const law = choice(['multiply','divide','power','zero','negative','mixed_alg','with_coeffs']);
+
+  if(law === 'multiply'){
+    const useAlg = choice([true,false,false]);
+    const base = useAlg ? choice(['x','a','m','n']) : choice([2,3,4,5]);
+    const isNum = typeof base === 'number' || !isNaN(Number(base));
+    const p = randInt(2,6), q = randInt(2,6);
+    const sumPQ = p + q;
+    const correct = (typeof base === 'number')
+      ? String(Math.pow(base, sumPQ))
+      : (sumPQ === 1 ? String(base) : `${base}${toSuperscript(sumPQ)}`);
+    const w1 = (typeof base === 'number')
+      ? String(Math.pow(base, p * q))
+      : `${base}${toSuperscript(p * q)}`;
+    const w2 = (typeof base === 'number')
+      ? String(Math.pow(base, sumPQ) + base)
+      : `${base}${toSuperscript(sumPQ + 1)}`;
+    const w3 = (typeof base === 'number')
+      ? String(Math.pow(base, p) + Math.pow(base, q))
+      : `${base}${toSuperscript(p)} + ${base}${toSuperscript(q)}`;
+    const mcq = buildMCQOptions(correct, [w1, w2, w3]);
+    if(!mcq) return makeLawsOfIndices();
+    const isAlg = typeof base !== 'number';
+    return {
+      id: makeID("IDX"),
+      topic: isAlg ? "Algebra" : "Number",
+      skill: "Laws of indices",
+      difficulty: "Foundation",
+      question: `Simplify: ${base}${toSuperscript(p)} \u00d7 ${base}${toSuperscript(q)}`,
+      options: mcq.options, correctIndex: mcq.correctIndex,
+      solution: `Multiplication law: add the powers.\n${base}${toSuperscript(p)} \u00d7 ${base}${toSuperscript(q)} = ${base}${toSuperscript(sumPQ)} ${typeof base === 'number' ? '= ' + correct : ''}`
+    };
+  }
+
+  if(law === 'divide'){
+    const useAlg = choice([true,false,false]);
+    const base = useAlg ? choice(['x','a','m','n']) : choice([2,3,4,5]);
+    const q = randInt(2,5), p = q + randInt(1,4);
+    const diff = p - q;
+    const isAlg = typeof base !== 'number';
+    const correct = diff === 0 ? '1'
+      : isAlg ? (diff === 1 ? String(base) : `${base}${toSuperscript(diff)}`)
+      : String(Math.pow(base, diff));
+    const w1 = isAlg ? `${base}${toSuperscript(p + q)}` : String(Math.pow(base, p + q));
+    const w2 = isAlg ? `${base}${toSuperscript(diff + 1)}` : String(Math.pow(base, diff + 1));
+    const w3 = diff === 0 ? (isAlg ? `${base}${toSuperscript(1)}` : String(base)) : '1';
+    const mcq = buildMCQOptions(correct, [w1, w2, w3]);
+    if(!mcq) return makeLawsOfIndices();
+    return {
+      id: makeID("IDX"),
+      topic: isAlg ? "Algebra" : "Number",
+      skill: "Laws of indices",
+      difficulty: "Foundation",
+      question: `Simplify: ${base}${toSuperscript(p)} \u00f7 ${base}${toSuperscript(q)}`,
+      options: mcq.options, correctIndex: mcq.correctIndex,
+      solution: `Division law: subtract the powers.\n${base}${toSuperscript(p)} \u00f7 ${base}${toSuperscript(q)} = ${base}${toSuperscript(diff)} ${!isAlg ? '= ' + correct : ''}`
+    };
+  }
+
+  if(law === 'power'){
+    const useAlg = choice([true,true,false]);
+    const base = useAlg ? choice(['x','a','m','n']) : choice([2,3,4]);
+    const p = randInt(2,5), q = randInt(2,4);
+    const prod = p * q;
+    const isAlg = typeof base !== 'number';
+    const correct = isAlg
+      ? (prod === 1 ? String(base) : `${base}${toSuperscript(prod)}`)
+      : String(Math.pow(base, prod));
+    const w1 = isAlg ? `${base}${toSuperscript(p + q)}` : String(Math.pow(base, p + q));
+    const w2 = isAlg ? `${base}${toSuperscript(prod - 1)}` : String(Math.pow(base, prod) + 1);
+    const w3 = isAlg ? `${base}${toSuperscript(Math.abs(p - q))}` : String(Math.pow(base, Math.abs(p - q)));
+    const mcq = buildMCQOptions(correct, [w1, w2, w3]);
+    if(!mcq) return makeLawsOfIndices();
+    return {
+      id: makeID("IDX"),
+      topic: isAlg ? "Algebra" : "Number",
+      skill: "Laws of indices",
+      difficulty: "Foundation",
+      question: `Simplify: (${base}${toSuperscript(p)})${toSuperscript(q)}`,
+      options: mcq.options, correctIndex: mcq.correctIndex,
+      solution: `Power law: multiply the powers.\n(${base}${toSuperscript(p)})${toSuperscript(q)} = ${base}${toSuperscript(prod)} ${!isAlg ? '= ' + correct : ''}`
+    };
+  }
+
+  if(law === 'zero'){
+    const base = choice([3,5,7,9,'x','a','n']);
+    const isNum = typeof base === 'number';
+    const coeff = randInt(2,8);
+    const useCoeff = choice([true,false]);
+    const expr = useCoeff
+      ? `(${coeff}${isNum ? base : base})${toSuperscript(0)}`
+      : `${base}${toSuperscript(0)}`;
+    const w2label = isNum ? String(base) : String(base);
+    const w3 = useCoeff ? String(coeff) : '0';
+    const mcq = buildMCQOptions('1', ['0', w2label, w3]);
+    if(!mcq) return makeLawsOfIndices();
+    return {
+      id: makeID("IDX"),
+      topic: isNum ? "Number" : "Algebra",
+      skill: "Laws of indices — zero power",
+      difficulty: "Foundation",
+      question: `Write down the value of: ${expr}`,
+      options: mcq.options, correctIndex: mcq.correctIndex,
+      solution: `Any value raised to the power 0 equals 1.\n${expr} = 1`
+    };
+  }
+
+  if(law === 'negative'){
+    const base = choice([2,3,4,5,10]);
+    const p = randInt(1,3);
+    const val = Math.pow(base, p);
+    const correct = `1/${val}`;
+    const mcq = buildMCQOptions(correct, [`\u22121/${val}`, String(val), `\u2212${val}`]);
+    if(!mcq) return makeLawsOfIndices();
+    return {
+      id: makeID("IDX"),
+      topic: "Number",
+      skill: "Laws of indices — negative power",
+      difficulty: "Foundation",
+      question: `Write ${base}${toSuperscript(-p)} as a fraction.`,
+      options: mcq.options, correctIndex: mcq.correctIndex,
+      solution: `Negative index rule: a${toSuperscript(-1)}n = 1/a${toSuperscript(p)}\n${base}${toSuperscript(-p)} = 1/${base}${toSuperscript(p)} = 1/${val}`
+    };
+  }
+
+  if(law === 'with_coeffs'){
+    // e.g. 2a\u00b3 \u00d7 3a\u00b2 = 6a\u2075
+    const base = choice(['x','a','m','n','p']);
+    const c1 = randInt(2,6), c2 = randInt(2,5);
+    const p1 = randInt(2,5), p2 = randInt(2,4);
+    const cProd = c1 * c2, pSum = p1 + p2;
+    const correct = `${cProd}${base}${toSuperscript(pSum)}`;
+    const w1 = `${c1 + c2}${base}${toSuperscript(pSum)}`;
+    const w2 = `${cProd}${base}${toSuperscript(p1 * p2)}`;
+    const w3 = `${c1 * c2 + 1}${base}${toSuperscript(pSum)}`;
+    const mcq = buildMCQOptions(correct, [w1, w2, w3]);
+    if(!mcq) return makeLawsOfIndices();
+    return {
+      id: makeID("IDX"),
+      topic: "Algebra",
+      skill: "Laws of indices — with coefficients",
+      difficulty: "Foundation",
+      question: `Simplify: ${c1}${base}${toSuperscript(p1)} \u00d7 ${c2}${base}${toSuperscript(p2)}`,
+      options: mcq.options, correctIndex: mcq.correctIndex,
+      solution: `Multiply the coefficients: ${c1} \u00d7 ${c2} = ${cProd}\nAdd the powers of ${base}: ${p1} + ${p2} = ${pSum}\nAnswer: ${cProd}${base}${toSuperscript(pSum)}`
+    };
+  }
+
+  // mixed_alg: combine multiply then divide
+  const base = choice(['x','a','m','n']);
+  const p1 = randInt(2,5), p2 = randInt(2,4), p3 = randInt(1,3);
+  const total = p1 + p2 - p3;
+  if(total <= 0) return makeLawsOfIndices();
+  const correct = total === 1 ? String(base) : `${base}${toSuperscript(total)}`;
+  const w1 = `${base}${toSuperscript(total + 1)}`;
+  const w2 = `${base}${toSuperscript(p1 + p2 + p3)}`;
+  const w3 = `${base}${toSuperscript(Math.abs(total - 1) || 1)}`;
+  const mcq = buildMCQOptions(correct, [w1, w2, w3]);
+  if(!mcq) return makeLawsOfIndices();
+  return {
+    id: makeID("IDX"),
+    topic: "Algebra",
+    skill: "Laws of indices — mixed",
+    difficulty: "Foundation",
+    question: `Simplify: ${base}${toSuperscript(p1)} \u00d7 ${base}${toSuperscript(p2)} \u00f7 ${base}${toSuperscript(p3)}`,
+    options: mcq.options, correctIndex: mcq.correctIndex,
+    solution: `Multiply law then divide law:\nAdd first two powers: ${p1} + ${p2} = ${p1 + p2}\nSubtract third power: ${p1 + p2} \u2212 ${p3} = ${total}\nAnswer: ${correct}`
+  };
+}
+
 const FACTORY_REGISTRY = [
   { topic:"Number", name:"Prime Factor Decomposition", fn:makePrimeFactorisation, prefix:"PF", inMap:true },
   { topic:"Number", name:"HCF — Two Numbers", fn:makeHCFTwoNumbers, prefix:"HCF", inMap:true },
@@ -5302,6 +5473,9 @@ const FACTORY_REGISTRY = [
   { topic:"Number", name:"Standard Form \u2014 Divide", fn:makeStandardFormDivide, prefix:"SF\u00f7", inMap:true },
   { topic:"Number", name:"Bounds \u2014 Error Interval", fn:makeBoundsErrorInterval, prefix:"BND", inMap:true },
   { topic:"Number", name:"Indices \u2014 Evaluate", fn:makeIndicesEvaluate, prefix:"IDX", inMap:true },
+  { topic:"Number", name:"Laws of Indices — Evaluate (Numeric)", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
+  { topic:"Algebra", name:"Laws of Indices — Algebraic", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
+  { topic:"Algebra", name:"Laws of Indices — With Coefficients", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
   { topic:"Number", name:"Multi-step Percent + Fraction", fn:makeMultiStepPercentThenFraction, prefix:"MIX", inMap:true },
   { topic:"Number", name:"Compound Percentage", fn:makeCompoundPercent, prefix:"COMP%", inMap:true },
   { topic:"Number", name:"Advanced Reverse Percentage", fn:makeAdvancedReversePercent, prefix:"REV%A", inMap:true },
