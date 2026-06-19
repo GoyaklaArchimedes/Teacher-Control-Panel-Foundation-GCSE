@@ -5618,7 +5618,435 @@ function makePercentageOfAmountMental(){
   };
 }
 
+
+/* ── Foundation: helpers needed for new factories ── */
+
+function uniqueOptions(correct, pool){
+  const opts=[];
+  const norm=v=>String(v).replace(/<[^>]*>/g,'').replace(/\s+/g,' ').trim();
+  [correct,...pool].forEach(v=>{
+    if(v===undefined || v===null) return;
+    if(!opts.map(norm).includes(norm(v))) opts.push(String(v));
+  });
+  let n=1;
+  while(opts.length<4){
+    const extra=String(Number(String(correct).match(/\d+/)?.[0]||0)+n);
+    if(!opts.map(norm).includes(norm(extra))) opts.push(extra);
+    n++;
+  }
+  return shuffleArray(opts.slice(0,4));
+}
+
+function venn2SVG(leftLabel,rightLabel,leftOnly,both,rightOnly,neither){
+  return `
+<svg viewBox="0 0 420 260" role="img" aria-label="Two-set Venn diagram">
+  <rect x="20" y="30" width="380" height="200" rx="8" fill="#ffffff" stroke="#1e2a45" stroke-width="2"/>
+  <text x="42" y="54" text-anchor="middle" font-family="Georgia,serif" font-size="17" font-weight="700" fill="#1e2a45">ξ</text>
+  <circle cx="165" cy="130" r="78" fill="#dbeafe" fill-opacity="0.55" stroke="#1a4a9e" stroke-width="2"/>
+  <circle cx="255" cy="130" r="78" fill="#fef3c7" fill-opacity="0.65" stroke="#c9963a" stroke-width="2"/>
+  <text x="113" y="100" text-anchor="middle" font-family="Georgia,serif" font-size="15" font-weight="700" fill="#1a4a9e">${leftLabel}</text>
+  <text x="307" y="100" text-anchor="middle" font-family="Georgia,serif" font-size="15" font-weight="700" fill="#c9963a">${rightLabel}</text>
+  <text x="118" y="135" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#1e2a45">${leftOnly}</text>
+  <text x="210" y="135" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#4b3800">${both}</text>
+  <text x="302" y="135" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#1e2a45">${rightOnly}</text>
+  <text x="55" y="210" text-anchor="middle" font-family="Arial,sans-serif" font-size="14" fill="#888">${neither}</text>
+</svg>`;
+}
+
+function drawBearing(bearing, from, to){
+  const W=300, H=260;
+  const len=100;
+  const rad=(bearing-90)*Math.PI/180;
+  const dx=len*Math.cos(rad), dy=len*Math.sin(rad);
+  const margin=50;
+  let fx=W/2, fy=H/2;
+  if(dx>0 && fx+dx>W-margin) fx=W-margin-dx;
+  if(dx<0 && fx+dx<margin) fx=margin-dx;
+  if(dy>0 && fy+dy>H-margin) fy=H-margin-dy;
+  if(dy<0 && fy+dy<margin) fy=margin-dy;
+  const tx=fx+dx, ty=fy+dy;
+  const angle=Math.atan2(dy,dx)*180/Math.PI;
+  return `<svg viewBox="0 0 ${W} ${H}" font-family="Arial,sans-serif">
+  <line x1="${fx}" y1="${fy}" x2="${tx}" y2="${ty}" stroke="#1a4a9e" stroke-width="2.5" marker-end="url(#ah)"/>
+  <line x1="${fx}" y1="${fy}" x2="${fx}" y2="${Math.max(10,fy-70)}" stroke="#aaa" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="${fx}" y="${Math.max(18,fy-75)}" text-anchor="middle" font-size="11" fill="#888">N</text>
+  <circle cx="${fx}" cy="${fy}" r="4" fill="#1a4a9e"/>
+  <text x="${fx-10}" y="${fy+16}" font-size="13" font-weight="700" fill="#1a4a9e">${from}</text>
+  <text x="${tx+8}" y="${ty}" font-size="13" font-weight="700" fill="#c8102e">${to}</text>
+  <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#1a4a9e"/>
+  </marker></defs>
+</svg>`;
+}
+
+/* ── Foundation: Transformations (no y=x reflection, no enlargement) ── */
+
+function makeTransformations_F(){
+  const type = choice(['reflection_x','reflection_y','rotation_90','rotation_180','translation']);
+  // Use non-zero coordinates with enough range to produce distinct wrong options
+  const px = choice([-4,-3,-2,-1,1,2,3,4]);
+  const py = choice([-4,-3,-2,-1,1,2,3,4]);
+
+  if(type==='reflection_x'){
+    // Guard: py must be non-zero so image ≠ original
+    if(py===0) return makeTransformations_F();
+    const ans=`(${px}, ${-py})`;
+    const pool=[`(${-px}, ${py})`,`(${-px}, ${-py})`,`(${py}, ${px})`,`(${px}, ${py})`,`(${-py}, ${px})`];
+    return {
+      topic:"Geometry & Measure", skill:"Transformations – reflection", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Point P has coordinates (${px}, ${py}).
+
+P is reflected in the x-axis.
+Write down the coordinates of the image.`,
+      options:uniqueOptions(ans,pool), answer:ans,
+      solution:`Reflection in the x-axis: (x, y) → (x, −y)
+
+P(${px}, ${py}) → P'(${px}, ${-py})`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+  if(type==='reflection_y'){
+    if(px===0) return makeTransformations_F();
+    const ans=`(${-px}, ${py})`;
+    const pool=[`(${px}, ${-py})`,`(${-px}, ${-py})`,`(${py}, ${px})`,`(${px}, ${py})`,`(${-py}, ${-px})`];
+    return {
+      topic:"Geometry & Measure", skill:"Transformations – reflection", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Point P has coordinates (${px}, ${py}).
+
+P is reflected in the y-axis.
+Write down the coordinates of the image.`,
+      options:uniqueOptions(ans,pool), answer:ans,
+      solution:`Reflection in the y-axis: (x, y) → (−x, y)
+
+P(${px}, ${py}) → P'(${-px}, ${py})`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+  if(type==='rotation_90'){
+    const ans=`(${-py}, ${px})`;
+    const pool=[`(${py}, ${-px})`,`(${-px}, ${-py})`,`(${py}, ${px})`,`(${px}, ${py})`,`(${-px}, ${py})`];
+    return {
+      topic:"Geometry & Measure", skill:"Transformations – rotation", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Point P has coordinates (${px}, ${py}).
+
+P is rotated 90° anticlockwise about the origin.
+Write down the coordinates of the image.`,
+      options:uniqueOptions(ans,pool), answer:ans,
+      solution:`90° anticlockwise rotation: (x, y) → (−y, x)
+
+P(${px}, ${py}) → P'(${-py}, ${px})`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+  if(type==='rotation_180'){
+    const ans=`(${-px}, ${-py})`;
+    const pool=[`(${py}, ${px})`,`(${px}, ${-py})`,`(${-px}, ${py})`,`(${px}, ${py})`,`(${-py}, ${-px})`];
+    return {
+      topic:"Geometry & Measure", skill:"Transformations – rotation", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Point P has coordinates (${px}, ${py}).
+
+P is rotated 180° about the origin.
+Write down the coordinates of the image.`,
+      options:uniqueOptions(ans,pool), answer:ans,
+      solution:`180° rotation: (x, y) → (−x, −y)
+
+P(${px}, ${py}) → P'(${-px}, ${-py})`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+  // translation
+  const tx=choice([-4,-3,-2,-1,1,2,3,4]);
+  const ty=choice([-4,-3,-2,-1,1,2,3,4]);
+  const ans=`(${px+tx}, ${py+ty})`;
+  const pool=[`(${px-tx}, ${py-ty})`,`(${px+tx+1}, ${py+ty})`,`(${px+tx}, ${py+ty-1})`,`(${tx}, ${ty})`,`(${px}, ${py})`];
+  return {
+    topic:"Geometry & Measure", skill:"Transformations – translation", difficulty:"Foundation",
+    paper:"paper1",
+    question:`Point P has coordinates (${px}, ${py}).
+
+P is translated by vector (${tx}, ${ty}).
+Write down the coordinates of the image.`,
+    options:uniqueOptions(ans,pool), answer:ans,
+    solution:`Translation by (${tx}, ${ty}): add tx to x, ty to y.
+
+P(${px}, ${py}) → P'(${px+tx}, ${py+ty})`,
+    type:"mcq", id:makeID("GEO")
+  };
+}
+
+/* ── Foundation: Bearings (back bearing + simple N/S/E/W calculations) ── */
+
+function makeBearings_F(){
+  const from = choice(["A","B","C","D"]);
+  const to   = choice(["A","B","C","D"].filter(v=>v!==from));
+  const bearing = (randInt(1,35)*10) % 360 || 10;
+  const type = choice(['back','from_description']);
+
+  if(type==='back'){
+    const back = (bearing+180) % 360;
+    const ansStr = String(back).padStart(3,"0")+"°";
+    const wrongs = [
+      String((bearing+90)%360).padStart(3,"0")+"°",
+      String((bearing+270)%360).padStart(3,"0")+"°",
+      String(bearing).padStart(3,"0")+"°"
+    ].filter(v=>v!==ansStr).slice(0,3);
+    return {
+      topic:"Geometry & Measure", skill:"Bearings", difficulty:"Foundation",
+      paper:"paper2",
+      question:`The bearing of ${to} from ${from} is ${String(bearing).padStart(3,"0")}°.\n\nWork out the bearing of ${from} from ${to}.`,
+      options:shuffleArray([ansStr,...wrongs]), answer:ansStr,
+      solution:`To find the return bearing, ${bearing<180?"add":"subtract"} 180°.\n\n${bearing}° ${bearing<180?"+":"−"} 180° = ${back}°\n\nAs a three-figure bearing: ${ansStr}`,
+      diagram:drawBearing(bearing, from, to),
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+
+  // from_description: cardinal direction bearing identification
+  const directions = [
+    {desc:"due North", bearing:0},
+    {desc:"due East", bearing:90},
+    {desc:"due South", bearing:180},
+    {desc:"due West", bearing:270},
+    {desc:"North-East", bearing:45},
+    {desc:"South-East", bearing:135},
+    {desc:"South-West", bearing:225},
+    {desc:"North-West", bearing:315},
+  ];
+  const dir = choice(directions);
+  const ansStr = String(dir.bearing).padStart(3,"0")+"°";
+  const wrongs = directions.filter(d=>d.bearing!==dir.bearing)
+    .sort(()=>Math.random()-0.5).slice(0,3)
+    .map(d=>String(d.bearing).padStart(3,"0")+"°");
+  return {
+    topic:"Geometry & Measure", skill:"Bearings", difficulty:"Foundation",
+    paper:"paper2",
+    question:`Write down the three-figure bearing for the direction "${dir.desc}".`,
+    options:shuffleArray([ansStr,...wrongs]), answer:ansStr,
+    solution:`Bearings are measured clockwise from North.\n\n${dir.desc} = ${ansStr}`,
+    type:"mcq", id:makeID("GEO")
+  };
+}
+
+/* ── Foundation: Venn Two-Set Count ── */
+
+function makeVennTwoSetCount_F(){
+  const both   = randInt(3,9);
+  const onlyA  = randInt(6,15);
+  const onlyB  = randInt(6,15);
+  const neither= randInt(2,8);
+  const total  = onlyA+both+onlyB+neither;
+  const labels = choice([
+    ["H","T","hockey","tennis"],
+    ["C","B","cars","bicycles"],
+    ["M","E","Maths","English"],
+    ["P","V","piano","violin"]
+  ]);
+  const type = choice(["neither","exactlyOne","union","intersection"]);
+  let ans, question, solution, wrongs;
+
+  if(type==="neither"){
+    ans=String(neither);
+    question=`The Venn diagram shows a group of ${total} people.\n\nHow many people are in neither set?`;
+    solution=`The number outside both circles is ${neither}.\n\nSo ${neither} people are in neither set.`;
+    wrongs=[String(onlyA+onlyB),String(both),String(total-neither)];
+  } else if(type==="exactlyOne"){
+    ans=String(onlyA+onlyB);
+    question=`The Venn diagram shows a group of ${total} people.\n\nHow many people are in exactly one of the two sets?`;
+    solution=`Exactly one set = left only + right only.\n\n${onlyA} + ${onlyB} = ${onlyA+onlyB}`;
+    wrongs=[String(both),String(onlyA+both+onlyB),String(total)];
+  } else if(type==="union"){
+    ans=String(onlyA+both+onlyB);
+    question=`The Venn diagram shows a group of ${total} people.\n\nFind n(${labels[0]} ∪ ${labels[1]}).`;
+    solution=`${labels[0]} ∪ ${labels[1]} means in ${labels[0]} or ${labels[1]} or both.\n\n${onlyA} + ${both} + ${onlyB} = ${onlyA+both+onlyB}`;
+    wrongs=[String(both),String(onlyA+onlyB),String(total)];
+  } else {
+    ans=String(both);
+    question=`The Venn diagram shows a group of ${total} people.\n\nFind n(${labels[0]} ∩ ${labels[1]}).`;
+    solution=`${labels[0]} ∩ ${labels[1]} means in both sets.\n\nThe overlap contains ${both}.`;
+    wrongs=[String(onlyA),String(onlyB),String(onlyA+both)];
+  }
+  return {
+    topic:"Statistics & Probability", skill:"Venn diagrams – two-set counting", difficulty:"Foundation",
+    paper:"paper1",
+    question, diagram:venn2SVG(labels[0],labels[1],onlyA,both,onlyB,neither),
+    options:uniqueOptions(ans,wrongs), answer:ans, solution,
+    type:"mcq", id:makeID("STA")
+  };
+}
+
+/* ── Foundation: Venn Probability ── */
+
+function makeVennDiagramProbability_F(){
+  const onlyA=randInt(5,15), both=randInt(3,10), onlyB=randInt(5,15), neither=randInt(2,8);
+  const total=onlyA+both+onlyB+neither;
+  const type=choice(["AandB","AorB","notA"]);
+
+  function fracStr(n,d){
+    const g=gcd(n,d);
+    return n/g===1 && d/g===1 ? "1" : `${n/g}/${d/g}`;
+  }
+
+  if(type==="AandB"){
+    const ans=fracStr(both,total);
+    const wrongs=[fracStr(both+1,total),fracStr(onlyA+both,total),fracStr(both,total+1)].filter(v=>v!==ans).slice(0,3);
+    return {
+      topic:"Statistics & Probability", skill:"Venn diagrams – probability", difficulty:"Foundation",
+      paper:"paper2",
+      question:`In a class of ${total} students:\n• ${onlyA+both} study Maths\n• ${both+onlyB} study Science\n• ${both} study both\n• ${neither} study neither\n\nOne student is chosen at random.\nFind P(Maths AND Science).`,
+      options:uniqueOptions(ans,wrongs), answer:ans,
+      solution:`P(Maths AND Science) = both ÷ total\n= ${both} ÷ ${total}\n= ${ans}`,
+      type:"mcq", id:makeID("STA")
+    };
+  }
+  if(type==="AorB"){
+    const n=onlyA+both+onlyB;
+    const ans=fracStr(n,total);
+    const wrongs=[fracStr(n+1,total),fracStr(both,total),fracStr(onlyA+onlyB,total)].filter(v=>v!==ans).slice(0,3);
+    return {
+      topic:"Statistics & Probability", skill:"Venn diagrams – probability", difficulty:"Foundation",
+      paper:"paper2",
+      question:`In a group of ${total} people:\n• ${onlyA} like only tea\n• ${both} like both tea and coffee\n• ${onlyB} like only coffee\n• ${neither} like neither\n\nFind P(tea OR coffee).`,
+      options:uniqueOptions(ans,wrongs), answer:ans,
+      solution:`P(tea OR coffee) = (only tea + both + only coffee) ÷ total\n= (${onlyA} + ${both} + ${onlyB}) ÷ ${total}\n= ${n}/${total}\n= ${ans}`,
+      type:"mcq", id:makeID("STA")
+    };
+  }
+  // P(not A)
+  const notA=onlyB+neither;
+  const ans=fracStr(notA,total);
+  const wrongs=[fracStr(onlyA+both,total),fracStr(neither,total),fracStr(notA+1,total)].filter(v=>v!==ans).slice(0,3);
+  return {
+    topic:"Statistics & Probability", skill:"Venn diagrams – probability", difficulty:"Foundation",
+    paper:"paper2",
+    question:`In a class of ${total} students:\n• ${onlyA+both} study Maths\n• ${both+onlyB} study Science\n• ${both} study both\n• ${neither} study neither\n\nOne student is chosen at random.\nFind P(does NOT study Maths).`,
+    options:uniqueOptions(ans,wrongs), answer:ans,
+    solution:`Students who do NOT study Maths = only Science + neither\n= ${onlyB} + ${neither} = ${notA}\n\nP(not Maths) = ${notA}/${total} = ${ans}`,
+    type:"mcq", id:makeID("STA")
+  };
+}
+
+function makeLoci_F(){
+  const type = choice([
+    'equidistant_two_points',
+    'equidistant_two_lines',
+    'fixed_distance_point',
+    'fixed_distance_line',
+    'equidistant_two_lines_angle',
+    'identify_region'
+  ]);
+
+  if(type === 'equidistant_two_points'){
+    return {
+      topic:"Geometry & Measure", skill:"Loci and constructions", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Describe the locus of all points that are equidistant from two fixed points A and B.`,
+      options: shuffleArray([
+        "The perpendicular bisector of the line segment AB",
+        "A circle with centre A passing through B",
+        "A line parallel to AB",
+        "The angle bisector of angle A"
+      ]),
+      answer: "The perpendicular bisector of the line segment AB",
+      solution: `The set of all points equidistant from A and B forms the perpendicular bisector of AB.\n\nThis is a straight line that:\n• passes through the midpoint of AB\n• is at 90° to AB`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+
+  if(type === 'equidistant_two_lines'){
+    return {
+      topic:"Geometry & Measure", skill:"Loci and constructions", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Two straight lines meet at a point.\nDescribe the locus of all points that are equidistant from both lines.`,
+      options: shuffleArray([
+        "The angle bisector of the angle between the two lines",
+        "The perpendicular bisector of the two lines",
+        "A circle centred at the point where the lines meet",
+        "A line parallel to both lines"
+      ]),
+      answer: "The angle bisector of the angle between the two lines",
+      solution: `The locus of points equidistant from two intersecting lines is the angle bisector.\n\nThere are actually two angle bisectors (one for each pair of vertically opposite angles), but the principal one bisects the acute angle between the lines.`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+
+  if(type === 'fixed_distance_point'){
+    const d = choice([2, 3, 4, 5]);
+    return {
+      topic:"Geometry & Measure", skill:"Loci and constructions", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Describe the locus of all points that are exactly ${d} cm from a fixed point P.`,
+      options: shuffleArray([
+        `A circle with centre P and radius ${d} cm`,
+        `A straight line ${d} cm from P`,
+        `Two parallel lines, each ${d} cm from P`,
+        `A square with centre P and side ${d} cm`
+      ]),
+      answer: `A circle with centre P and radius ${d} cm`,
+      solution: `All points exactly ${d} cm from a fixed point P lie on a circle.\n\n• Centre: P\n• Radius: ${d} cm`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+
+  if(type === 'fixed_distance_line'){
+    const d = choice([2, 3, 4]);
+    return {
+      topic:"Geometry & Measure", skill:"Loci and constructions", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Describe the locus of all points that are exactly ${d} cm from a straight line AB (considering the region on one side).`,
+      options: shuffleArray([
+        `A straight line parallel to AB at a distance of ${d} cm`,
+        `A circle of radius ${d} cm`,
+        `The perpendicular bisector of AB`,
+        `Two lines at 45° to AB`
+      ]),
+      answer: `A straight line parallel to AB at a distance of ${d} cm`,
+      solution: `The locus of points a fixed distance from a straight line is a pair of parallel lines — one on each side.\n\nFor one side only: a single straight line parallel to AB at ${d} cm.`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+
+  if(type === 'equidistant_two_lines_angle'){
+    return {
+      topic:"Geometry & Measure", skill:"Loci and constructions", difficulty:"Foundation",
+      paper:"paper1",
+      question:`Which construction is used to find all points equidistant from two intersecting lines?`,
+      options: shuffleArray([
+        "Angle bisector construction",
+        "Perpendicular bisector construction",
+        "Drawing a circle through both lines",
+        "Constructing a parallel line"
+      ]),
+      answer: "Angle bisector construction",
+      solution: `To find points equidistant from two lines, use the angle bisector construction:\n\n1. Open compasses to any radius\n2. Place on the vertex and mark arcs on both lines\n3. From each arc, draw equal arcs that cross\n4. Draw the line through the vertex and crossing point`,
+      type:"mcq", id:makeID("GEO")
+    };
+  }
+
+  // identify_region
+  const r = choice([3, 4, 5]);
+  return {
+    topic:"Geometry & Measure", skill:"Loci and constructions", difficulty:"Foundation",
+    paper:"paper1",
+    question:`A point Q moves so that it is always less than ${r} cm from a fixed point P.\nWhich of these best describes the region where Q can be?`,
+    options: shuffleArray([
+      `The interior of a circle with centre P and radius ${r} cm`,
+      `The circumference of a circle with centre P and radius ${r} cm`,
+      `A square with centre P and side ${r} cm`,
+      `The exterior of a circle with centre P and radius ${r} cm`
+    ]),
+    answer: `The interior of a circle with centre P and radius ${r} cm`,
+    solution: `"Less than ${r} cm from P" means inside the boundary, not on it.\n\nThe region is the interior (inside) of a circle with:\n• Centre: P\n• Radius: ${r} cm\n\n(The boundary itself — the circle — is NOT included since the distance must be strictly less than ${r} cm.)`,
+    type:"mcq", id:makeID("GEO")
+  };
+}
+
 const FACTORY_REGISTRY = [
+
+  /* ── NUMBER ── */
   { topic:"Number", name:"Recognising Percentages", fn:makeRecognisePercentage, prefix:"RECP", inMap:true },
   { topic:"Number", name:"FDP Conversions", fn:makeFDPConversionRoundTrip, prefix:"FDP", inMap:true },
   { topic:"Number", name:"Percentage of an Amount (Mental)", fn:makePercentageOfAmountMental, prefix:"PCTA", inMap:true },
@@ -5637,8 +6065,6 @@ const FACTORY_REGISTRY = [
   { topic:"Number", name:"Bounds \u2014 Error Interval", fn:makeBoundsErrorInterval, prefix:"BND", inMap:true },
   { topic:"Number", name:"Indices \u2014 Evaluate", fn:makeIndicesEvaluate, prefix:"IDX", inMap:true },
   { topic:"Number", name:"Laws of Indices — Evaluate (Numeric)", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
-  { topic:"Algebra", name:"Laws of Indices — Algebraic", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
-  { topic:"Algebra", name:"Laws of Indices — With Coefficients", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
   { topic:"Number", name:"Multi-step Percent + Fraction", fn:makeMultiStepPercentThenFraction, prefix:"MIX", inMap:true },
   { topic:"Number", name:"Compound Percentage", fn:makeCompoundPercent, prefix:"COMP%", inMap:true },
   { topic:"Number", name:"Advanced Reverse Percentage", fn:makeAdvancedReversePercent, prefix:"REV%A", inMap:true },
@@ -5650,9 +6076,13 @@ const FACTORY_REGISTRY = [
   { topic:"Number", name:"Bounds \u2014 Area", fn:makeBoundsArea, prefix:"BND", inMap:true },
   { topic:"Number", name:"Mixed Percent & Ratio", fn:makeMixedPercentRatio, prefix:"MIX", inMap:true },
   { topic:"Number", name:"BIDMAS \u2014 Foundation", fn:makeBIDMASFoundation, prefix:"BID", inMap:true },
-  { topic:"Algebra", name:"Function Machine", fn:makeFunctionMachineFoundation, prefix:"FM", inMap:true },
   { topic:"Number", name:"True / False \u2014 Percentages \u2605F", fn:makeTrueFalsePercent_F, prefix:"F", inMap:true },
   { topic:"Number", name:"True / False \u2014 Conversion \u2605F", fn:makeTrueFalseConversion_F, prefix:"F", inMap:true },
+
+  /* ── ALGEBRA ── */
+  { topic:"Algebra", name:"Laws of Indices — Algebraic", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
+  { topic:"Algebra", name:"Laws of Indices — With Coefficients", fn:makeLawsOfIndices, prefix:"IDX", inMap:true },
+  { topic:"Algebra", name:"Function Machine", fn:makeFunctionMachineFoundation, prefix:"FM", inMap:true },
   { topic:"Algebra", name:"Expand Single Bracket", fn:makeExpandSingleBracketQuestion, prefix:"ALG", inMap:true },
   { topic:"Algebra", name:"Expand Double Brackets", fn:makeExpandDoubleBracketQuestion, prefix:"ALG", inMap:true },
   { topic:"Algebra", name:"Factorise \u2014 Common Factor", fn:makeFactoriseCommonFactorQuestion, prefix:"ALG", inMap:true },
@@ -5678,6 +6108,8 @@ const FACTORY_REGISTRY = [
   { topic:"Algebra", name:"Thought Number \u2014 Multiply \u2605F", fn:makeThoughtNumberMultiply_F, prefix:"F", inMap:true },
   { topic:"Algebra", name:"Thought Number \u2014 Divide \u2605F", fn:makeThoughtNumberDivide_F, prefix:"F", inMap:true },
   { topic:"Algebra", name:"Thought Number \u2014 Two Step \u2605F", fn:makeThoughtNumberTwoStep_F, prefix:"F", inMap:true },
+
+  /* ── GEOMETRY & MEASURE ── */
   { topic:"Geometry & Measure", name:"Rectangle \u2014 Area", fn:makeRectangleAreaQuestion, prefix:"GEO", inMap:true },
   { topic:"Geometry & Measure", name:"Rectangle \u2014 Perimeter", fn:makeRectanglePerimeterQuestion, prefix:"GEO", inMap:true },
   { topic:"Geometry & Measure", name:"Triangle \u2014 Area", fn:makeTriangleAreaQuestion, prefix:"GEO", inMap:true },
@@ -5701,6 +6133,11 @@ const FACTORY_REGISTRY = [
   { topic:"Geometry & Measure", name:"Trigonometry \u2014 SOH (sin)", fn:makeTrigSOHQuestion, prefix:"GEO", inMap:true },
   { topic:"Geometry & Measure", name:"Trigonometry \u2014 CAH (cos)", fn:makeTrigCAHQuestion, prefix:"GEO", inMap:true },
   { topic:"Geometry & Measure", name:"Trigonometry \u2014 TOA (tan)", fn:makeTrigTOAQuestion, prefix:"GEO", inMap:true },
+  { topic:"Geometry & Measure", name:"Transformations", fn:makeTransformations_F, prefix:"GEO", inMap:true },
+  { topic:"Geometry & Measure", name:"Bearings", fn:makeBearings_F, prefix:"GEO", inMap:true },
+  { topic:"Geometry & Measure", name:"Loci and Constructions", fn:makeLoci_F, prefix:"GEO", inMap:true },
+
+  /* ── STATISTICS & PROBABILITY ── */
   { topic:"Statistics & Probability", name:"Mean \u2014 Integer Data", fn:makeMeanQuestionInteger, prefix:"STAT", inMap:true },
   { topic:"Statistics & Probability", name:"Mean \u2014 Missing Value", fn:makeMissingMeanQuestion, prefix:"STAT", inMap:true },
   { topic:"Statistics & Probability", name:"Median", fn:makeMedianQuestion, prefix:"STAT", inMap:true },
@@ -5717,6 +6154,9 @@ const FACTORY_REGISTRY = [
   { topic:"Statistics & Probability", name:"Relative Frequency", fn:makeRelativeFrequency, prefix:"PROB", inMap:true },
   { topic:"Statistics & Probability", name:"Pie Chart \u2014 Angle", fn:makePieChartAngle, prefix:"STAT", inMap:true },
   { topic:"Statistics & Probability", name:"Scatter Graph \u2014 Correlation", fn:makeScatterCorrelation, prefix:"STAT", inMap:true },
+  { topic:"Statistics & Probability", name:"Venn — Two Sets (Count)", fn:makeVennTwoSetCount_F, prefix:"STAT", inMap:true },
+  { topic:"Statistics & Probability", name:"Venn Diagram — Probability", fn:makeVennDiagramProbability_F, prefix:"STAT", inMap:true },
+
 ];
 
 /* == STATE == */
@@ -5840,11 +6280,43 @@ function toggleSolution(){
 }
 function copyId(){
   if(!currentQ||!currentQ.id) return;
-  navigator.clipboard.writeText(currentQ.id).then(()=>{
-    const h=document.getElementById('copyHint');
+  const h=document.getElementById('copyHint');
+  const showCopied=()=>{
     h.textContent='copied!'; h.classList.add('copy-flash');
     setTimeout(()=>{h.textContent='click to copy'; h.classList.remove('copy-flash');},1500);
-  });
+  };
+  const showFailed=()=>{
+    h.textContent='copy failed'; h.classList.add('copy-flash');
+    setTimeout(()=>{h.textContent='click to copy'; h.classList.remove('copy-flash');},1500);
+  };
+  // Try the modern Clipboard API first (requires secure context / permissions)
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(currentQ.id).then(showCopied).catch(()=>{
+      fallbackCopy(currentQ.id, showCopied, showFailed);
+    });
+  } else {
+    fallbackCopy(currentQ.id, showCopied, showFailed);
+  }
+}
+
+function fallbackCopy(text, onSuccess, onFail){
+  // Fallback for sandboxed/non-HTTPS contexts where Clipboard API is blocked:
+  // create a temporary textarea, select its contents, and use execCommand.
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';
+    ta.style.left='-9999px';
+    ta.style.top='0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(ok) onSuccess(); else onFail();
+  }catch(e){
+    onFail();
+  }
 }
 function lookupByPrefix(){
   const raw=document.getElementById('idLookupInput').value.trim().toUpperCase();
